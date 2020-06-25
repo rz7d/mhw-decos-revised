@@ -1,4 +1,4 @@
-package exporter;
+package io.github.clicksilver.exporter;
 
 import java.io.FileWriter;
 import java.lang.String;
@@ -17,9 +17,9 @@ public class App {
   static final int kMinJewelId = 727;
   static final int kMaxJewelId = 2272;
   static final int kNumDecos = kMaxJewelId - kMinJewelId + 1;
-  
+
   // 10 pages, 50 jewels per page
-  static final int kDecoInventorySize = 50 * 10; 
+  static final int kDecoInventorySize = 50 * 10;
 
   // 8 bytes per jewel, (4 for ID + 4 for count)
   static final int kNumBytesPerDeco = 8;
@@ -37,36 +37,28 @@ public class App {
     }
     byte[] bytes;
     Path p = Paths.get(args[0]);
+    boolean japanese = (args.length >= 2 && args[1].trim().endsWith("japanese"));
     try {
       byte[] save = Files.readAllBytes(p);
       byte[] decrypted_save = Savecrypt.decryptSave(save);
 
+      System.out.println("WARNING: Unequip all decorations before using this otherwise the count will be wrong.");
       for (int i=0; i<3; ++i) {
         // Get actual decoration counts from the decrypted save.
 	      int[] decorationCounts = getJewelCounts(decrypted_save, kSaveSlotDecosOffsets[i]);
 
         // Write out the Honeyhunter format.
-        FileWriter honeyFile = new FileWriter("honeyhunter-" + 
-                                              String.valueOf(i+1) + ".txt");
+        FileWriter honeyFile = new FileWriter("honeyhunter-" + (i+1) + ".txt");
 	      if (decorationCounts != null) {
-          honeyFile.write("WARNING: Unequip all decorations before using this "+
-                          "otherwise the count will be wrong.");
-          honeyFile.write("\n");
-          honeyFile.write("\n");
 		      honeyFile.write(outputHoneyHunter(decorationCounts));
           honeyFile.write("\n");
 	      }
         honeyFile.close();
 
         // Write out the MHW Wiki DB format.
-        FileWriter wikidbFile = new FileWriter("mhw-wiki-db-" +
-                                               String.valueOf(i+1) + ".txt");
+        FileWriter wikidbFile = new FileWriter("mhw-wiki-db-" + (i+1) + ".txt");
 	      if (decorationCounts != null) {
-          wikidbFile.write("WARNING: Unequip all decorations before using this"+
-                           " otherwise the count will be wrong.");
-          wikidbFile.write("\n");
-          wikidbFile.write("\n");
-		      wikidbFile.write(outputWikiDB(decorationCounts));
+		      wikidbFile.write(outputWikiDB(decorationCounts, japanese));
           wikidbFile.write("\n");
 	      }
         wikidbFile.close();
@@ -77,6 +69,7 @@ public class App {
           "COMPLETE", JOptionPane.INFORMATION_MESSAGE);
       System.exit(0);
     } catch(Exception e) {
+      e.printStackTrace();
       JFrame frame = new JFrame();
       JOptionPane.showMessageDialog(frame, "Not a valid save file.", "ERROR",
           JOptionPane.INFORMATION_MESSAGE);
@@ -94,8 +87,8 @@ public class App {
       }
     }
   }
-  
-  public static String outputWikiDB(int[] counts) {
+
+  public static String outputWikiDB(int[] counts, boolean useJapanese) {
     int wikiDBcounts[] = new int[WikiDB.kNumDecos];
     Arrays.fill(wikiDBcounts, 0);
 
@@ -114,13 +107,14 @@ public class App {
     StringBuilder contents = new StringBuilder("");
     contents.append("{");
     for (int i=0; i<wikiDBcounts.length; ++i) {
+      if (i != 0)
+        contents.append(",");
       int count = Math.max(0, wikiDBcounts[i]);
       count = Math.min(count, 7);
       contents.append("\"");
-      contents.append(WikiDB.kDecoNames[i]);
+      contents.append((useJapanese ? WikiDB.kDecoJapaneseNames : WikiDB.kDecoNames)[i]);
       contents.append("\":");
       contents.append(count);
-      contents.append(",");
     }
     contents.append("}");
     return contents.toString();
@@ -155,10 +149,10 @@ public class App {
     int counts[] = new int[kNumDecos];
 
     ByteBuffer buf = ByteBuffer.wrap(bytes, offset, kDecoInventorySize * kNumBytesPerDeco);
-    
+
     // NOTE: Java is dumb about bytes.
     buf.order(ByteOrder.LITTLE_ENDIAN);
-    
+
     boolean anyNonZero = false;
 
     for (int i=0; i<kDecoInventorySize; i++) {
