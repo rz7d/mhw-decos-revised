@@ -1,11 +1,13 @@
 package io.github.clicksilver.exporter;
 
 import java.io.FileWriter;
+import java.io.IOException;
 import java.lang.String;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.file.*;
 import java.util.Arrays;
+import java.util.Collections;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 
@@ -43,25 +45,17 @@ public class App {
       byte[] decrypted_save = Savecrypt.decryptSave(save);
 
       System.out.println("WARNING: Unequip all decorations before using this otherwise the count will be wrong.");
-      for (int i=0; i<3; ++i) {
+      int i = 0;
+      for (int offset : kSaveSlotDecosOffsets) {
+        ++i;
         // Get actual decoration counts from the decrypted save.
-	      int[] decorationCounts = getJewelCounts(decrypted_save, kSaveSlotDecosOffsets[i]);
+        int[] decorationCounts = getJewelCounts(decrypted_save, offset);
 
         // Write out the Honeyhunter format.
-        FileWriter honeyFile = new FileWriter("honeyhunter-" + (i+1) + ".txt");
-	      if (decorationCounts != null) {
-		      honeyFile.write(outputHoneyHunter(decorationCounts));
-          honeyFile.write("\n");
-	      }
-        honeyFile.close();
-
-        // Write out the MHW Wiki DB format.
-        FileWriter wikidbFile = new FileWriter("mhw-wiki-db-" + (i+1) + ".txt");
-	      if (decorationCounts != null) {
-		      wikidbFile.write(outputWikiDB(decorationCounts, japanese));
-          wikidbFile.write("\n");
-	      }
-        wikidbFile.close();
+        if (decorationCounts != null) {
+          writeTo("honeyhunter-" + i + ".txt", outputHoneyHunter(decorationCounts), "");
+          writeTo("mhw-wiki-db-" + i + ".txt", outputWikiDB(decorationCounts, japanese), "");
+        }
       }
 
       JFrame frame = new JFrame();
@@ -76,6 +70,14 @@ public class App {
       System.exit(0);
     }
     return;
+  }
+
+  private static void writeTo(String path, CharSequence... lines) throws IOException {
+    Files.write(
+      Paths.get(path),
+      Arrays.asList(lines),
+      StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE
+    );
   }
 
   public static void printJewels(int[] counts) {
