@@ -1,13 +1,11 @@
 package io.github.clicksilver.exporter;
 
-import java.io.FileWriter;
 import java.io.IOException;
 import java.lang.String;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.file.*;
 import java.util.Arrays;
-import java.util.Collections;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 
@@ -91,7 +89,7 @@ public class App {
   }
 
   public static String outputWikiDB(int[] counts, boolean useJapanese) {
-    int wikiDBcounts[] = new int[WikiDB.kNumDecos];
+    int[] wikiDBcounts = new int[WikiDB.kNumDecos];
     Arrays.fill(wikiDBcounts, 0);
 
     for (int i=0; i<counts.length; ++i) {
@@ -106,27 +104,28 @@ public class App {
       wikiDBcounts[order] = counts[i];
     }
 
-    StringBuilder contents = new StringBuilder("");
-    contents.append("{");
+    StringBuilder contents = new StringBuilder();
+    contents.append('{');
     for (int i=0; i<wikiDBcounts.length; ++i) {
       if (i != 0)
-        contents.append(",");
+        contents.append(',');
       int count = Math.max(0, wikiDBcounts[i]);
       count = Math.min(count, 7);
-      contents.append("\"");
+      contents.append('"');
       contents.append((useJapanese ? WikiDB.kDecoJapaneseNames : WikiDB.kDecoNames)[i]);
-      contents.append("\":");
+      contents.append('"');
+      contents.append(':');
       contents.append(count);
     }
-    contents.append("}");
+    contents.append('}');
     return contents.toString();
   }
 
   public static String outputHoneyHunter(int[] counts) {
-    int hhCounts[] = new int[HoneyHunter.kNumDecos];
+    int[] hhCounts = new int[HoneyHunter.kNumDecos];
     Arrays.fill(hhCounts, 0);
 
-    for (int i=0; i<counts.length; ++i) {
+    for (int i = 0; i < counts.length; ++i) {
       String name = DecorationNames.getDecorationName(i + kMinJewelId);
       if (name.length() == 0) {
         continue;
@@ -139,16 +138,17 @@ public class App {
       hhCounts[order] = count;
     }
 
-    StringBuilder contents = new StringBuilder("");
-    for (int i=0; i<hhCounts.length; ++i) {
+    StringBuilder contents = new StringBuilder();
+    for (int i = 0; i < hhCounts.length; ++i) {
+      if (i != 0)
+        contents.append(',');
       contents.append(hhCounts[i]);
-      contents.append(",");
     }
     return contents.toString();
   }
 
   public static int[] getJewelCounts(byte[] bytes, int offset) {
-    int counts[] = new int[kNumDecos];
+    int[] counts = new int[kNumDecos];
 
     ByteBuffer buf = ByteBuffer.wrap(bytes, offset, kDecoInventorySize * kNumBytesPerDeco);
 
