@@ -1,5 +1,7 @@
 package io.github.clicksilver.exporter;
 
+import java.time.*;
+import java.time.format.*;
 import java.io.IOException;
 import java.lang.String;
 import java.nio.ByteBuffer;
@@ -27,6 +29,8 @@ public class App {
   // direct offsets into the decrypted save, where each decorations list starts
   static final int kSaveSlotDecosOffsets[] = new int[]{4302696, 6439464, 8576232};
 
+  static final DateTimeFormatter formatter =  DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm-ss");
+
   public static void main(String[] args) {
     if (args.length == 0) {
       JFrame frame = new JFrame();
@@ -51,20 +55,23 @@ public class App {
 
         // Write out the Honeyhunter format.
         if (decorationCounts != null) {
-          writeTo("honeyhunter-" + i + ".txt", outputHoneyHunter(decorationCounts), "");
-          writeTo("mhw-wiki-db-" + i + ".txt", outputWikiDB(decorationCounts, japanese), "");
+          String time = formatter.format(LocalDateTime.now());
+          writeTo(String.format("honeyhunter-%s-%d.json", time, i), outputHoneyHunter(decorationCounts), "");
+          writeTo(String.format("mhw-wiki-db-%s-%d.json", time, i), outputWikiDB(decorationCounts, japanese), "");
         }
       }
 
-      JFrame frame = new JFrame();
-      JOptionPane.showMessageDialog(frame, "Successfully exported decorations",
-          "COMPLETE", JOptionPane.INFORMATION_MESSAGE);
+      // JFrame frame = new JFrame();
+      // JOptionPane.showMessageDialog(frame, "Successfully exported decorations",
+      //     "COMPLETE", JOptionPane.INFORMATION_MESSAGE);
+      System.out.println("Successfully exported decorations");
       System.exit(0);
     } catch(Exception e) {
       e.printStackTrace();
-      JFrame frame = new JFrame();
-      JOptionPane.showMessageDialog(frame, "Not a valid save file.", "ERROR",
-          JOptionPane.INFORMATION_MESSAGE);
+      // JFrame frame = new JFrame();
+      // JOptionPane.showMessageDialog(frame, "Not a valid save file.", "ERROR",
+      //     JOptionPane.INFORMATION_MESSAGE);
+      System.out.println("Failed to export decorations");
       System.exit(0);
     }
     return;
@@ -88,6 +95,8 @@ public class App {
     }
   }
 
+  private static final boolean PRETTY_PRINT = false;
+
   public static String outputWikiDB(int[] counts, boolean useJapanese) {
     int[] wikiDBcounts = new int[WikiDB.kNumDecos];
     Arrays.fill(wikiDBcounts, 0);
@@ -109,14 +118,18 @@ public class App {
     for (int i=0; i<wikiDBcounts.length; ++i) {
       if (i != 0)
         contents.append(',');
+      if (PRETTY_PRINT) contents.append('\n');
       int count = Math.max(0, wikiDBcounts[i]);
-      count = Math.min(count, 7);
+      if (!PRETTY_PRINT) count = Math.min(count, 7);
+      if (PRETTY_PRINT) contents.append(' ').append(' ');
       contents.append('"');
       contents.append((useJapanese ? WikiDB.kDecoJapaneseNames : WikiDB.kDecoNames)[i]);
       contents.append('"');
       contents.append(':');
+      if (PRETTY_PRINT) contents.append(' ');
       contents.append(count);
     }
+    if (PRETTY_PRINT) contents.append('\n');
     contents.append('}');
     return contents.toString();
   }
